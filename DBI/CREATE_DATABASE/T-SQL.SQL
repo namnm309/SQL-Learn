@@ -1,0 +1,145 @@
+﻿--T-SQL = SLOT 14
+USE QL_CONGTY_SE1809
+--1) KHAI BÁO BIẾN 
+	DECLARE @SOA INT --DECLARE @Tên_biến Datatype
+	DECLARE @HOTEN NVARCHAR(200) 
+
+--2) CÁCH GÁN GIÁ TRỊ CHO BIẾN 
+--CÓ 3 CÁCH : 
+--CÁCH 1: TỪ KHÓA SET GÁN BIẾN = 1 GIÁ TRỊ CỤ THỂ 
+	SET @SOA = 1000 --SET BIẾN = VALUE 
+	SET @HOTEN = N'NGUYỄN VĂN A'
+
+--CÁCH 2: DÙNG TỪ KHÓA SET GÁN BIẾN = KẾT QUẢ TRẢ VỀ CỦA 1 CÂU TRUY VẤN 
+--VD: VIẾT T-SQL lấy ra MANV của nhân viên có tên là Mai Duy An 
+	DECLARE @MANV DECIMAL (18,0) 
+	SET @MANV = (SELECT NV.MANV FROM NHANVIEN NV WHERE NV.TENNV=N'Mai Duy An')
+	PRINT @MANV
+
+--CÁCH 3: GÁN TRỰC TIẾP BIẾN VÀO ATTRIBUTE TRONG MỆNH ĐỀ SELECT 
+--VD2: viết T-SQL lấy ra tổng số lượng dự án mà nhân viên 
+--NGUYỄN THÚY QUỲNH ANH đã tham gia 
+	DECLARE @TONGDUAN INT 
+	SELECT @TONGDUAN=COUNT(PC.MADA) 
+	FROM NHANVIEN NV,PHANCONG PC
+	WHERE NV.MANV=PC.MANV
+	AND NV.TENNV=N'NGUYỄN THÚY QUỲNH ANH'
+	PRINT N'Tổng số lượng dự án là :'+ CONVERT(CHAR(5),@TONGDUAN)
+
+--VD3: Viết T-SQL tính tổng số giờ mà nhân viên có tên là TỐNG THỊ LAN ANH đã tham gia tất cả dự án 
+	DECLARE @TONGSOGIO INT 
+	SELECT @TONGSOGIO=SUM(PC.SOGIO)
+	FROM NHANVIEN NV,PHANCONG PC
+	WHERE NV.MANV=PC.MANV
+	AND NV.TENNV=N'TỐNG THỊ LAN ANH'
+	PRINT N'Tổng số giờ làm của Mai Duy An là : '+CONVERT(CHAR(5),@TONGSOGIO)
+
+	--CÁCH 2: 
+	DECLARE @TONGGIO INT 
+	SET @TONGGIO=(
+					SELECT SUM(PC.SOGIO)
+					FROM NHANVIEN NV,PHANCONG PC
+					WHERE NV.MANV=PC.MANV
+					AND NV.TENNV=N'TỐNG THỊ LAN ANH'
+		)
+	PRINT @TONGGIO
+
+--VD4: Viết T-SQL tính tổng số giờ của phòng ban nào triển khai dự án nhiều nhất 
+
+	--DECLARE @TONGGIOPB INT 
+	
+	--SET @TONGGIOPB =(
+	--					SELECT SUM(PC.SOGIO)
+	--					FROM DUAN DA,PHANCONG PC
+	--					WHERE DA.MADA=PC.MADA
+	--					GROUP BY DA.MAPHG 
+	--					HAVING SUM(PC.SOGIO) >= ALL (SELECT SUM(PC.SOGIO)
+	--												FROM DUAN DA,PHANCONG PC
+	--												WHERE DA.MADA=PC.MADA
+	--												GROUP BY DA.MAPHG )
+	
+	--)
+	PRINT N'Tổng số giờ triển khai nhiều nhất là : '+CONVERT(CHAR(5),@TONGGIOPB)
+--NÂNG CAO: LẤY RA THÊM THÔNG TIN TÊN PHÒNG BAN ĐÓ VÀ SỐ GIỜ CỦA PHÒNG BAN NHIỀU NHẤT 
+--DÙNG CÁCH 3 : 
+	DECLARE @TONGGIOPB INT 
+	DECLARE @TENPB NVARCHAR(200)
+	
+						SELECT @TONGGIOPB=SUM(PC.SOGIO),@TENPB=PB.TENPHG
+						FROM DUAN DA,PHANCONG PC,PHONGBAN PB
+						WHERE DA.MADA=PC.MADA
+						GROUP BY DA.MAPHG ,PB.TENPHG
+						HAVING SUM(PC.SOGIO) >= ALL (SELECT SUM(PC.SOGIO)
+													FROM DUAN DA,PHANCONG PC
+													WHERE DA.MADA=PC.MADA
+													GROUP BY DA.MAPHG )
+PRINT @TENPB+ N' có tổng số giờ triển khai nhiều nhất là : '+CONVERT(CHAR(5),@TONGGIOPB)
+
+--VD5: Viết T-SQL kiểm tra tuổi của nhân viên có tên là MAI DUY AN 
+--Nếu tuổi lớn hơn 18 thì in ra đủ tuổi lao động ngược lại thì chưa đủ tuổi lao động 
+	DECLARE @KIEMTRATUOI INT 
+	SET @KIEMTRATUOI = (
+						SELECT  YEAR(GETDATE())-YEAR(NGAYSINH)
+						FROM NHANVIEN NV
+						WHERE NV.TENNV=N'MAI DUY AN'
+	)
+	IF @KIEMTRATUOI > 18 
+BEGIN 
+	PRINT N'ĐỦ TUỔI LAO ĐỘNG'
+END 
+	ELSE 
+BEGIN 
+	PRINT N'KHÔNG ĐỦ TUỔI LAO ĐỘNG'
+END
+
+--VD6: Viết T_SQL sử dụng case when then kiểm tra địa chỉ của nhân viên 
+--có tên là MAI DUY AN
+--Địa chỉ là TP Hồ Chí Minh thì in ra phụ cấp là 500000
+--TP Hà Nội thì in ra phụ cấp là 300000 
+--Ngược lại thì in ra phụ cấp là 0 
+	DECLARE @KIEMTRADC NVARCHAR(200)
+	SELECT @KIEMTRADC = 
+		CASE DIACHI WHEN N'TP Hồ Chí Minh' THEN '500000'
+					WHEN N'TP Hà Nội'	   THEN  '300000'
+					ELSE '0'
+					END
+		FROM NHANVIEN 
+		WHERE TENNV=N'MAI DUY AN'
+		PRINT @KIEMTRADC 
+--MAI DUY AN Ở LONG AN => PHỤ CẤP = 0
+
+--VIDU7: VIẾT T-SQL TÍNH TỔNG SỐ LƯỢNG DỰ ÁN MÀ PHÒNG BAN CÓ TÊN LÀ PHÒNG PHẦN
+-- MỀM TRONG NƯỚC ĐÃ TRIỂN KHAI TẠI ĐỊA ĐIỂM HỖ CHÍ MINH 
+	DECLARE @TONGSLDUAN INT 
+	SET @TONGSLDUAN=(SELECT COUNT(DA.MADA)
+					 FROM PHONGBAN PB,DUAN DA,DIADIEM DD
+					 WHERE PB.TENPHG=N'Phòng Phần mềm trong nước' AND PB.MAPHG=DA.MAPHG AND DD.TENDD=N'TP Hồ Chí Minh'
+					 GROUP BY PB.MAPHG
+	)
+	PRINT N'Tổng số lượng dự án của Phòng Phần mềm trong nước là : '+CONVERT(CHAR(5),@TONGSLDUAN)
+--VIDU8: VIẾT T-SQL ĐẾM TỔNG SỐ LƯỢNG NGƯỜI GIÁM SÁT HIỆN ĐANG LÀ NHÂN VIÊN
+-- THUỘC PHÒNG CÓ TÊN LÀ PHÒNG NGHIÊN CỨU PHÁT TRIỂN
+	DECLARE @TONGNGS INT
+					SET @TONGNGS = (					
+					SELECT COUNT (DISTINCT NV.MANV)
+					FROM NHANVIEN NV, (SELECT MANGS FROM NHANVIEN )A, PHONGBAN PB
+					WHERE NV.MANV = A.MANGS
+					AND NV. MAPHG = PB.MAPHG
+					AND PB. TENPHG = N'Phòng Nghiên cứu và phát triển')
+	--PRINT N'TỔNG SỐ LƯỢNG NGS TẠI PHÒNG LÀ ' +CONVERT (CHAR(5), @TONGNGS) 
+	PRINT N'TỔNG SỐ LƯỢNG NGS TẠI PHÒNG LÀ ' + CAST (@TONGNGS AS CHAR (5))
+	--LỆNH CHUYỂN ĐỐI KIỂU DỮ LIỆU CONVERT (KDLMOI, @BIEN)
+--VIDU9: VIẾT T-SQL TÍNH TỔNG SỐ LƯỢNG NGƯỜI GIÁM SÁT, GIÁM SÁT NHỮNG NHÂN VIÊN
+-- CÓ ĐỊA CHỈ TẠI HỒ CHÍ MINH
+	
+	
+	SELECT COUNT (DISTINCT NV.MANV)
+					FROM NHANVIEN NV, (SELECT MANGS FROM NHANVIEN )A, PHONGBAN PB
+					WHERE NV.MANV = A.MANGS
+					AND NV. MAPHG = PB.MAPHG
+	                
+					
+					
+
+-- VIDU10: VIẾT T-SQL TÍNH TỔNG SỐ LƯỢNG NHÂN VIÊN CÓ NGƯỜI PHỤ THUỘC LÀ CHỒNG
+-- DUỢC SINH RA VAO QUÝ 1 BẤT KẾ NĂM NÀO
